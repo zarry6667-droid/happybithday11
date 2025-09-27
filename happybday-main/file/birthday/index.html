@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HBD Love</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #ffe;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #main {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #error {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+        }
+        
+        #error a {
+            color: #333;
+            text-decoration: none;
+        }
+        
+        #wrap {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            text-align: center;
+            display: none;
+        }
+        
+        #code {
+            font-size: 24px;
+            color: #333;
+            line-height: 1.8;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+        }
+        
+        .say {
+            display: block;
+            opacity: 0;
+        }
+        
+        #clock-box {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            z-index: 10;
+            color: #333;
+            font-size: 18px;
+        }
+        
+        #canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .hand {
+            cursor: pointer;
+        }
+        
+        .typed-cursor {
+            opacity: 1;
+            animation: blink 0.7s infinite;
+        }
+        
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="main">
+        <div id="error">
+            <a href="http://www.google.cn/chrome/intl/zh-CN/landing_chrome.html?hl=zh-CN&brand=CHMI">Chrome</a> 
+            (<a href="http://firefox.com.cn/download/">Firefox</a>)
+        </div>
+        
+        <audio autoplay="autoplay" height="100" width="100" id="myAudio" loop>
+            <!-- Audio will be created programmatically -->
+        </audio>
+        
+        <div id="wrap">
+            <div id="text">
+                <div id="code">
+                    <span class="say">My beautiful wife 💞</span><br>
+                    <span class="say">Happy Birthday 🎈</span><br>
+                    <span class="say">May Allah bless you 🍀</span><br>
+                    <span class="say">And give u many happiness 💕</span><br>
+                    <span class="say">I loved you ❤️</span><br>
+                    <span class="say">And I will always love u 🥺 ❤️</span><br>
+                    <span class="say">Hope u have a great day today ❤️😘</span><br>
+                </div>
+            </div>
+            <div id="clock-box">
+                <span id="clock">577 days 0 hours 0 minutes 0 seconds</span>
+            </div>
+            <canvas id="canvas" width="1100" height="680"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // Create a simple audio player with base64 encoded silent audio
+        // In a real implementation, you would replace this with actual audio
+        window.addEventListener('DOMContentLoaded', function() {
+            // Create a silent audio as placeholder
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 0; // Silent
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            oscillator.start();
+            
+            // Function to play actual audio when needed
+            window.playAudio = function() {
+                // This would play your actual audio file
+                console.log("Audio would play here");
+            };
+        });
+
+        // Tree and animation implementation
+        (function() {
+            // Utility functions
+            function $(selector) {
+                return document.querySelector(selector);
+            }
+            
+            function $$(selector) {
+                return document.querySelectorAll(selector);
+            }
+            
+            // Point class
+            function Point(x, y) {
+                this.x = x || 0;
+                this.y = y || 0;
+            }
+            
+            // Tree class
+            function Tree(canvas, width, height, opts) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.width = width;
+                this.height = height;
+                this.opts = opts;
+                
+                this.init();
+            }
+            
+            Tree.prototype.init = function() {
+                this.flowers = [];
+                this.branches = [];
+                this.addBranch.apply(this, this.opts.seed);
+                this.footer = new Footer(this, this.opts.footer);
+            };
+            
+            Tree.prototype.addBranch = function(x, y, x2, y2, r, len, v, c, branches) {
+                var branch = new Branch(this, new Point(x, y), new Point(x2, y2), r, len, v, c);
+                this.branches.push(branch);
+                
+                if (branches) {
+                    for (var i = 0; i < branches.length; i++) {
+                        this.addBranch.apply(this, branches[i]);
+                    }
+                }
+                
+                return branch;
+            };
+            
+            Tree.prototype.addFlower = function(p) {
+                this.flowers.push(new Flower(this, p));
+            };
+            
+            Tree.prototype.render = function() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+                
+                for (var i = 0; i < this.branches.length; i++) {
+                    this.branches[i].render();
+                }
+                
+                for (var i = 0; i < this.flowers.length; i++) {
+                    this.flowers[i].render();
+                }
+            };
+            
+            Tree.prototype.grow = function() {
+                var grown = 0;
+                
+                for (var i = 0; i < this.branches.length; i++) {
+                    if (this.branches[i].grow()) {
+                        grown++;
+                    }
+                }
+                
+                for (var i = 0; i < this.flowers.length; i++) {
+                    if (this.flowers[i].grow()) {
+                        grown++;
+                    }
+                }
+                
+                this.render();
+                return grown > 0;
+            };
+            
+            Tree.prototype.canGrow = function() {
+                return this.branches.some(function(branch) {
+                    return branch.canGrow();
+                });
+            };
+            
+            Tree.prototype.flower = function(num) {
+                var flowered = 0;
+                
+                for (var i = 0; i < this.branches.length; i++) {
+                    if (this.branches[i].flower(num)) {
+                        flowered++;
+                    }
+                }
+                
+                this.render();
+                return flowered > 0;
+            };
+            
+            Tree.prototype.canFlower = function() {
+                return this.branches.some(function(branch) {
+                    return branch.canFlower();
+                });
+            };
+            
+            // Branch class
+            function Branch(tree, from, to, r, len, v, c) {
+                this.tree = tree;
+                this.from = from;
+                this.to = to;
+                this.r = r;
+                this.len = len;
+                this.v = v;
+                this.c = c;
+                this.length = this.getLength();
+                
+                this.growed = 0;
+                this.flowered = 0;
+                
+                this.init();
+            }
+            
+            Branch.prototype.init = function() {
+                this.subBranches = [];
+                this.flowed = false;
+            };
+            
+            Branch.prototype.getLength = function() {
+                return Math.sqrt(Math.pow(this.to.x - this.from.x, 2) + Math.pow(this.to.y - this.from.y, 2));
+            };
+            
+            Branch.prototype.grow = function() {
+                if (this.growed >= this.length) {
+                    return false;
+                }
+                
+                this.growed += this.v;
+                if (this.growed > this.length) {
+                    this.growed = this.length;
+                }
+                
+                return true;
+            };
+            
+            Branch.prototype.canGrow = function() {
+                return this.growed < this.length;
+            };
+            
+            Branch.prototype.flower = function(num) {
+                if (this.flowered >= this.c) {
+                    return false;
+                }
+                
+                this.flowered += num;
+                if (this.flowered > this.c) {
+                    this.flowered = this.c;
+                }
+                
+                if (!this.flowed && this.flowered > 0) {
+                    this.flowed = true;
+                    var p = this.getPoint(this.growed / this.length);
+                    this.tree.addFlower(p);
+                }
+                
+                return true;
+            };
+            
+            Branch.prototype.canFlower = function() {
+                return this.flowered < this.c;
+            };
+            
+            Branch.prototype.getPoint = function(percent) {
+                return new Point(
+                    this.from.x + (this.to.x - this.from.x) * percent,
+                    this.from.y + (this.to.y - this.from.y) * percent
+                );
+            };
+            
+            Branch.prototype.render = function() {
+                var ctx = this.tree.ctx;
+                var p = this.getPoint(this.growed / this.length);
+                
+                ctx.save();
+                ctx.lineWidth = this.r;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.strokeStyle = 'rgb(35, 31, 32)';
+                
+                ctx.beginPath();
+                ctx.moveTo(this.from.x, this.from.y);
+                ctx.lineTo(p.x, p.y);
+                ctx.stroke();
+                ctx.restore();
+            };
+            
+            // Flower class
+            function Flower(tree, p) {
+                this.tree = tree;
+                this.p = p;
+                this.r = 10;
+                this.color = 'rgb(255, 0, 0)';
+                this.growed = 0;
+            }
+            
+            Flower.prototype.grow = function() {
+                if (this.growed >= this.r) {
+                    return false;
+                }
+                
+                this.growed += 0.5;
+                if (this.growed > this.r) {
+                    this.growed = this.r;
+                }
+                
+                return true;
+            };
+            
+            Flower.prototype.render = function() {
+                var ctx = this.tree.ctx;
+                
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.p.x, this.p.y, this.growed, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            };
+            
+            // Footer class
+            function Footer(tree, opts) {
+                this.tree = tree;
+                this.opts = opts;
+                this.length = 0;
+            }
+            
+            Footer.prototype.draw = function() {
+                var ctx = this.tree.ctx;
+                var gradient = ctx.createLinearGradient(0, this.tree.height - this.opts.height, 0, this.tree.height);
+                
+                gradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+                gradient.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
+                
+                ctx.save();
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, this.tree.height - this.opts.height, this.length, this.opts.height);
+                ctx.restore();
+                
+                this.length += this.opts.speed;
+                if (this.length > this.opts.width) {
+                    this.length = this.opts.width;
+                }
+            };
+            
+            // Seed class
+            function Seed(tree, x, y, color, scale) {
+                this.tree = tree;
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.scale = scale;
+                this.alpha = 1;
+                this.w = 20;
+                this.h = 20;
+            }
+            
+            Seed.prototype.draw = function() {
+                var ctx = this.tree.ctx;
+                
+                ctx.save();
+                ctx.fillStyle = this.color;
+                ctx.globalAlpha = this.alpha;
+                ctx.translate(this.x, this.y);
+                ctx.scale(this.scale, this.scale);
+                ctx.fillRect(-this.w/2, -this.h/2, this.w, this.h);
+                ctx.restore();
+            };
+            
+            Seed.prototype.hover = function(x, y) {
+                return x >= this.x - this.w/2 * this.scale && 
+                       x <= this.x + this.w/2 * this.scale && 
+                       y >= this.y - this.h/2 * this.scale && 
+                       y <= this.y + this.h/2 * this.scale;
+            };
+            
+            Seed.prototype.canScale = function() {
+                return this.scale > 0.2;
+            };
+            
+            Seed.prototype.scale = function(ratio) {
+                this.scale *= ratio;
+                return this.scale > 0.2;
+            };
+            
+            Seed.prototype.canMove = function() {
+                return this.y < this.tree.height - 50;
+            };
+            
+            Seed.prototype.move = function(x, y) {
+                this.x += x;
+                this.y += y;
+                return this.y < this.tree.height - 50;
+            };
+            
+            // Typewriter effect
+            function Typewriter(element, options) {
+                this.element = element;
+                this.text = element.innerHTML;
+                this.options = options || {};
+                this.delay = this.options.delay || 100;
+                this.cursor = this.options.cursor || '|';
+                this.init();
+            }
+            
+            Typewriter.prototype.init = function() {
+                this.element.innerHTML = '';
+                this.index = 0;
+                this.isTag = false;
+                this.textToType = '';
+                this.cursorElement = document.createElement('span');
+                this.cursorElement.className = 'typed-cursor';
+                this.cursorElement.innerHTML = this.cursor;
+                this.element.appendChild(this.cursorElement);
+                this.type();
+            };
+            
+            Typewriter.prototype.type = function() {
+                if (this.index < this.text.length) {
+                    var currentChar = this.text.charAt(this.index);
+                    
+                    if (currentChar === '<') {
+                        this.isTag = true;
+                    }
+                    
+                    if (this.isTag) {
+                        this.textToType += currentChar;
+                        if (currentChar === '>') {
+                            this.isTag = false;
+                        }
+                    } else {
+                        if (currentChar === '&') {
+                            // Handle HTML entities
+                            var entity = '';
+                            while (currentChar !== ';' && this.index < this.text.length) {
+                                entity += currentChar;
+                                this.index++;
+                                currentChar = this.text.charAt(this.index);
+                            }
+                            entity += ';';
+                            this.textToType += entity;
+                        } else {
+                            this.textToType += currentChar;
+                        }
+                    }
+                    
+                    this.index++;
+                    this.element.innerHTML = this.textToType;
+                    this.element.appendChild(this.cursorElement);
+                    
+                    var delay = this.delay;
+                    if (currentChar === '.' || currentChar === '!' || currentChar === '?') {
+                        delay = this.delay * 5;
+                    }
+                    
+                    setTimeout(this.type.bind(this), delay);
+                } else {
+                    this.cursorElement.style.display = 'none';
+                }
+            };
+            
+            // Add typewriter to jQuery if not present
+            if (typeof jQuery !== 'undefined') {
+                jQuery.fn.typewriter = function(options) {
+                    return this.each(function() {
+                        new Typewriter(this, options);
+                    });
+                };
+            } else {
+                // Simple implementation without jQuery
+                Element.prototype.typewriter = function(options) {
+                    new Typewriter(this, options);
+                    return this;
+                };
+            }
+            
+            // Main animation function
+            function init() {
+                var canvas = $('#canvas');
+                
+                if (!canvas.getContext) {
+                    $("#error").style.display = 'block';
+                    return false;
+                }
+                
+                var width = window.innerWidth;
+                var height = window.innerHeight;
+                canvas.width = width;
+                canvas.height = height;
+                
+                var opts = {
+                    seed: {
+                        x: width / 2 - 20,
+                        color: "rgb(190, 26, 37)",
+                        scale: 2
+                    },
+                    branch: [
+                        [width/2 - 30, height, width/2, height/4, 500, 200, 30, 100, [
+                            [width/2 - 5, height/2, width/2 - 90, height/2.5, width/2 - 200, height/2, 13, 100, [
+                                [width/2 - 100, height/2.2, width/2 - 116, height/2.15, width/2 - 156, height/2.15, 2, 40]
+                            ]],
+                            [width/2 + 10, height/2.3, width/2 + 100, height/2.7, width/2 + 180, height/2.7, 12, 100, [
+                                [width/2 + 38, height/2.5, width/2 + 108, height/2.45, width/2 + 121, height/2.3, 3, 80]
+                            ]],
+                            [width/2 - 1, height/3.2, width/2 - 3, height/3.5, width/2 - 16, height/4, 3, 40],
+                            [width/2 + 6, height/2.5, width/2 - 87, height/3.5, width/2 - 172, height/3.5, 9, 80, [
+                                [width/2 - 73, height/3, width/2 - 117, height/3.3, width/2 - 129, height/4, 2, 40],
+                                [width/2 - 2, height/2.8, width/2 - 65, height/3, width/2 - 105, height/2.9, 4, 60]
+                            ]],
+                            [width/2 + 6, height/2.7, width/2 + 108, height/3.5, width/2 + 178, height/3.8, 6, 100, [
+                                [width/2 + 50, height/3.2, width/2 + 106, height/3.4, width/2 + 108, height/3.45, 2, 80]
+                            ]]
+                        ]] 
+                    ],
+                    bloom: {
+                        num: 700,
+                        width: width,
+                        height: height - 50,
+                    },
+                    footer: {
+                        width: width,
+                        height: 50,
+                        speed: 5,
+                    }
+                };
+                
+                var tree = new Tree(canvas, width, height, opts);
+                var seed = new Seed(tree, opts.seed.x, height - 100, opts.seed.color, opts.seed.scale);
+                var foot = tree.footer;
+                var hold = 1;
+                
+                canvas.addEventListener('click', function(e) {
+                    playAudio();
+                    var rect = canvas.getBoundingClientRect();
+                    var x = e.clientX - rect.left;
+                    var y = e.clientY - rect.top;
+                    if (seed.hover(x, y)) {
+                        hold = 0; 
+                        canvas.removeEventListener('click', arguments.callee);
+                        canvas.removeEventListener('mousemove', mouseMoveHandler);
+                        canvas.classList.remove('hand');
+                    }
+                });
+                
+                function mouseMoveHandler(e) {
+                    var rect = canvas.getBoundingClientRect();
+                    var x = e.clientX - rect.left;
+                    var y = e.clientY - rect.top;
+                    if (seed.hover(x, y)) {
+                        canvas.classList.add('hand');
+                    } else {
+                        canvas.classList.remove('hand');
+                    }
+                }
+                
+                canvas.addEventListener('mousemove', mouseMoveHandler);
+                
+                // Animation functions
+                function seedAnimate() {
+                    return new Promise(function(resolve) {
+                        function animate() {
+                            seed.draw();
+                            
+                            if (hold) {
+                                requestAnimationFrame(animate);
+                            } else {
+                                scaleDown();
+                            }
+                        }
+                        
+                        function scaleDown() {
+                            if (seed.canScale()) {
+                                seed.scale(0.95);
+                                requestAnimationFrame(scaleDown);
+                            } else {
+                                moveDown();
+                            }
+                        }
+                        
+                        function moveDown() {
+                            if (seed.canMove()) {
+                                seed.move(0, 2);
+                                foot.draw();
+                                requestAnimationFrame(moveDown);
+                            } else {
+                                resolve();
+                            }
+                        }
+                        
+                        animate();
+                    });
+                }
+                
+                function growAnimate() {
+                    return new Promise(function(resolve) {
+                        function animate() {
+                            if (tree.grow()) {
+                                requestAnimationFrame(animate);
+                            } else {
+                                resolve();
+                            }
+                        }
+                        
+                        animate();
+                    });
+                }
+                
+                function flowAnimate() {
+                    return new Promise(function(resolve) {
+                        function animate() {
+                            if (tree.flower(2)) {
+                                requestAnimationFrame(animate);
+                            } else {
+                                resolve();
+                            }
+                        }
+                        
+                        animate();
+                    });
+                }
+                
+                function textAnimate() {
+                    return new Promise(function(resolve) {
+                        $("#text").style.display = 'block';
+                        $("#code").typewriter({delay: 100});
+                        setTimeout(resolve, 5000);
+                    });
+                }
+                
+                // Start animations
+                seedAnimate()
+                    .then(growAnimate)
+                    .then(flowAnimate)
+                    .then(textAnimate);
+            }
+            
+            // Start the animation when page loads
+            window.addEventListener('load', init);
+        })();
+    </script>
+</body>
+</html>
